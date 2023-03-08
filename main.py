@@ -1,7 +1,8 @@
-from fastapi import FastAPI
 import yt_dlp
+from fastapi import FastAPI
 
 app = FastAPI()
+
 
 @app.get("/extract")
 def extract(url: str):
