@@ -1,8 +1,20 @@
+import asyncio
+
 import yt_dlp
 from fastapi import FastAPI
 
 app = FastAPI()
 
+
+@app.get("/")
+async def root(timeout: int = None):
+    if timeout:
+        # Yes, we can use time.sleep() instead, but acdg. to FastAPI docs: https://stackoverflow.com/a/75470289,
+        # `def` functions are "run in an external threadpool that is then awaited, instead of being called directly (as it would block the server)."
+        # Remember that this is an ASGI server, that's why there's practically no difference between `time.sleep()` and `asyncio.sleep()`.
+        # But technically, `asyncio.sleep()` is more efficient since threading have more overhead.
+        await asyncio.sleep(timeout)
+    return {"message": "Hello, World!"}
 
 @app.get("/extract")
 def extract(url: str):
