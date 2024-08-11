@@ -1,7 +1,7 @@
 import asyncio
 
 import yt_dlp
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 
 app = FastAPI()
 
@@ -19,6 +19,10 @@ async def root(timeout: int = None):
 @app.get("/extract")
 def extract(url: str):
     ydl_opts = {}
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        info_dict = ydl.extract_info(url, download=False)
-        return ydl.sanitize_info(info_dict)
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info_dict = ydl.extract_info(url, download=False)
+            return ydl.sanitize_info(info_dict)
+    except Exception as e:
+        error_message = str(e)
+        raise HTTPException(status_code=500, detail=error_message)
