@@ -33,9 +33,8 @@ def extract(url: str, response: Response):
 
 waikei_llm_router = APIRouter()
 
-@waikei_llm_router.get("/stop-generating")
+@waikei_llm_router.post("/stop-generating")
 async def stop_generating():
-    # return {"message": "Method has not been implemented"}
     raise HTTPException(status_code=501, detail="Method has not been implemented")
 
 app.include_router(waikei_llm_router, prefix="/waikei-pretrained", tags=["waikei-llm"])
