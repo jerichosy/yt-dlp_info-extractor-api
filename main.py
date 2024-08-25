@@ -22,8 +22,8 @@ def extract(url: str, response: Response):
     # Despite the official recommendation to not prefix custom proprietary headers with "X-", keep using so as our use case is private and not a standard.
     response.headers[HEADER_NAME_YT_DLP_VER] = yt_dlp.version.__version__  # ! WARNING: Do not do this in widely used web apps as versions can indicate security vulnerabilities.
 
-    ydl_opts = {}
     try:
+        ydl_opts = {}
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info_dict = ydl.extract_info(url, download=False)
             return ydl.sanitize_info(info_dict)
