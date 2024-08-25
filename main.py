@@ -1,7 +1,7 @@
 import asyncio
 
 import yt_dlp
-from fastapi import FastAPI, HTTPException
+from fastapi import APIRouter, FastAPI, HTTPException
 
 app = FastAPI()
 
@@ -26,3 +26,12 @@ def extract(url: str):
     except Exception as e:
         error_message = str(e)
         raise HTTPException(status_code=500, detail=error_message)
+
+waikei_llm_router = APIRouter()
+
+@waikei_llm_router.get("/stop-generating")
+async def stop_generating():
+    # return {"message": "Method has not been implemented"}
+    raise HTTPException(status_code=501, detail="Method has not been implemented")
+
+app.include_router(waikei_llm_router, prefix="/waikei-pretrained", tags=["waikei-llm"])
