@@ -1,7 +1,7 @@
 import asyncio
 
 import yt_dlp
-from fastapi import APIRouter, FastAPI, HTTPException
+from fastapi import APIRouter, FastAPI, HTTPException, Response
 
 app = FastAPI()
 
@@ -17,7 +17,11 @@ async def root(timeout: int = None):
     return {"message": "Hello, World!"}
 
 @app.get("/extract")
-def extract(url: str):
+def extract(url: str, response: Response):
+    HEADER_NAME_YT_DLP_VER = "X-YT-DLP-Ver"
+    # Despite the official recommendation to not prefix custom proprietary headers with "X-", keep using so as our use case is private and not a standard.
+    response.headers[HEADER_NAME_YT_DLP_VER] = yt_dlp.version.__version__  # ! WARNING: Do not do this in widely used web apps as versions can indicate security vulnerabilities.
+
     ydl_opts = {}
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -25,7 +29,7 @@ def extract(url: str):
             return ydl.sanitize_info(info_dict)
     except Exception as e:
         error_message = str(e)
-        raise HTTPException(status_code=500, detail=error_message)
+        raise HTTPException(status_code=500, detail=error_message, headers={HEADER_NAME_YT_DLP_VER: yt_dlp.version.__version__})  # Include header as it is not in here by default.
 
 waikei_llm_router = APIRouter()
 
