@@ -1,0 +1,3 @@
+yt-dlp[default]  # Includes necessary dependencies: https://github.com/yt-dlp/yt-dlp?tab=readme-ov-file#networking
+fastapi  # Without standard dependencies (https://fastapi.tiangolo.com/#standard-dependencies)
+uvicorn[standard]  # This is the only one among FastAPI's standard dependencies we need
