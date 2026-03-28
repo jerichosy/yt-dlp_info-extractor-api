@@ -8,3 +8,8 @@ dependencies = [
     "uvicorn[standard]>=0.34.2",  # This is the only one among FastAPI's standard dependencies we need
     "yt-dlp[curl-cffi,default]>=2026.3.17",  # Includes necessary and nice-to-have dependencies: https://github.com/yt-dlp/yt-dlp?tab=readme-ov-file#networking
 ]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+]

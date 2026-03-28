@@ -38,4 +38,4 @@ jobs:
 
       - name: Test with pytest
         run: |
-          uvx pytest
+          uv run pytest
