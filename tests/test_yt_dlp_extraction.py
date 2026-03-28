@@ -8,6 +8,7 @@ from main import extract_media_info
     [
         # "https://www.instagram.com/reel/C-RJokDy9xd",
         "https://www.instagram.com/reel/DPFk1TBj2-O",
+        "https://www.instagram.com/reel/DV-qbM2Ez5q",
         "https://www.instagram.com/p/DAFJPYCvkQw",
         "https://www.facebook.com/reel/307664589035540",
     ],
