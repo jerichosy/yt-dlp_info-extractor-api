@@ -1,0 +1,6 @@
+[project]
+name = "yt-dlp-info-extractor-api"
+version = "0.1.0"
+description = "youtube-dl (yt-dlp) REST API for extracting info from video links"
+requires-python = ">=3.11"
+dependencies = []
