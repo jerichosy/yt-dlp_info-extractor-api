@@ -987,7 +987,7 @@ dev = [
 requires-dist = [
     { name = "fastapi", specifier = ">=0.115.12" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.34.2" },
-    { name = "yt-dlp", extras = ["curl-cffi", "default"], specifier = ">=2026.3.17" },
+    { name = "yt-dlp", extras = ["curl-cffi", "default"], specifier = ">=2026.6.9" },
 ]
 
 [package.metadata.requires-dev]
