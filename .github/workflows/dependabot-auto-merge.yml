@@ -32,7 +32,7 @@ jobs:
                   ):
                       return False
                   # Unknown registries, containers, date versions and version ranges need review.
-                  if dep.get('packageEcosystem') not in ('npm_and_yarn', 'npm', 'pip', 'uv', 'maven', 'gradle', 'go_modules', 'gomod', 'github_actions', 'github-actions'):
+                  if dep.get('packageEcosystem') not in ('npm_and_yarn', 'npm', 'pip', 'uv', 'maven', 'gradle', 'go_modules', 'gomod', 'github_actions', 'github-actions', 'devcontainers'):
                       return False
                   versions = []
                   for key in ('prevVersion', 'newVersion'):
