@@ -60,10 +60,13 @@ jobs:
           PR_URL: ${{ github.event.pull_request.html_url }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
-          gh pr checks "$PR_URL" --required --json name > required.json || test -s required.json
+          gh api "repos/$REPO/branches/$BASE" > protection.json
           python - <<'PY'
           import json
-          checks = json.load(open('required.json'))
-          assert any(c['name'] == 'Dependency CI Gate' for c in checks), 'Required CI protection is missing'
+          branch = json.load(open('protection.json'))
+          assert branch['protected'], 'Branch protection is missing'
+          checks = branch['protection']['required_status_checks']
+          assert checks['enforcement_level'] == 'everyone'
+          assert any(c['context'] == 'Dependency CI Gate' and c['app_id'] == 15368 for c in checks['checks']), 'Required CI protection is missing'
           PY
           gh pr merge --auto --merge --match-head-commit "$HEAD_SHA" "$PR_URL"
