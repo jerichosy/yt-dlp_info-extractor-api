@@ -17,13 +17,15 @@ jobs:
       - name: Check every dependency in this PR
         id: policy
         env:
+          REPOSITORY: ${{ github.repository }}
           DEPENDENCIES: ${{ steps.metadata.outputs.updated-dependencies-json }}
         run: |
           python - <<'PY'
           """Conservative eligibility check for verified dependabot/fetch-metadata output."""
           import re
+          from datetime import date
 
-          def eligible(dependencies):
+          def eligible(dependencies, repository=""):
               if not isinstance(dependencies, list) or not dependencies:
                   return False
               for dep in dependencies:
@@ -34,6 +36,20 @@ jobs:
                   # Unknown registries, containers, date versions and version ranges need review.
                   if dep.get('packageEcosystem') not in ('npm_and_yarn', 'npm', 'pip', 'uv', 'maven', 'gradle', 'go_modules', 'gomod', 'github_actions', 'github-actions', 'devcontainers'):
                       return False
+                  # Owner-approved exception: only yt-dlp in this one repository.
+                  if repository == 'jerichosy/yt-dlp_info-extractor-api' and dep.get('packageEcosystem') in ('uv', 'pip') and dep.get('dependencyName', '').split('[')[0] == 'yt-dlp':
+                      dates = []
+                      for key in ('prevVersion', 'newVersion'):
+                          match = re.fullmatch(r'(20\d{2})\.(\d{1,2})\.(\d{1,2})', dep.get(key, ''))
+                          if not match:
+                              return False
+                          try:
+                              dates.append(date(*map(int, match.groups())))
+                          except ValueError:
+                              return False
+                      if dates[1] <= dates[0]:
+                          return False
+                      continue
                   versions = []
                   for key in ('prevVersion', 'newVersion'):
                       match = re.fullmatch(r'v?(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)', dep.get(key, ''))
@@ -51,7 +67,7 @@ jobs:
 
           import json, os
           with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
-              output.write('eligible=' + str(eligible(json.loads(os.environ['DEPENDENCIES']))).lower() + '\n')
+              output.write('eligible=' + str(eligible(json.loads(os.environ['DEPENDENCIES']), os.environ['REPOSITORY'])).lower() + '\n')
           PY
       - name: Require CI protection before enabling auto-merge
         if: steps.policy.outputs.eligible == 'true'
