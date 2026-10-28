@@ -3,20 +3,63 @@ on:
   push:
     branches: [master]
   workflow_dispatch:
+  workflow_run:
+    workflows: [Dependency CI, Safe Dependabot auto-merge]
+    types: [completed]
 permissions:
   contents: read
   packages: write
 env:
   IMAGE: ghcr.io/jerichosy/yt-dlp_info-extractor-api
 jobs:
+  source:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      sha: ${{ steps.resolve.outputs.sha }}
+      publish: ${{ steps.resolve.outputs.publish }}
+    steps:
+      - id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import json, os, subprocess, time, re
+          event=json.load(open(os.environ['GITHUB_EVENT_PATH']))
+          sha=os.environ['GITHUB_SHA'] if os.environ['GITHUB_REF']=='refs/heads/master' else ''
+          if os.environ['GITHUB_EVENT_NAME']=='workflow_run':
+              sha=''
+              run=event['workflow_run']
+              if run['conclusion']=='success' and run['event'] in ['pull_request','pull_request_target']:
+                  prs=run.get('pull_requests',[])
+                  if not prs:
+                      prs=json.loads(subprocess.check_output(['gh','api','repos/'+os.environ['GITHUB_REPOSITORY']+'/commits/'+run['head_sha']+'/pulls'],text=True))
+                  for attempt in range(12):
+                      pending=False
+                      for item in prs:
+                          pr=json.loads(subprocess.check_output(['gh','api','repos/'+os.environ['GITHUB_REPOSITORY']+'/pulls/'+str(item['number'])],text=True))
+                          if pr['user']['login']=='dependabot[bot]' and pr['base']['ref']=='master':
+                              if pr['merged']:
+                                  sha=pr['merge_commit_sha']; break
+                              pending |= pr['state']=='open'
+                      if sha or not pending: break
+                      time.sleep(5)
+          assert not sha or re.fullmatch('[0-9a-f]{40}',sha)
+          with open(os.environ['GITHUB_OUTPUT'],'a') as out:
+              out.write('sha='+sha+'\npublish='+str(bool(sha)).lower()+'\n')
+          PY
   publish:
-    if: github.ref == 'refs/heads/master'
+    needs: source
+    if: needs.source.outputs.publish == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
         with:
           persist-credentials: false
+          ref: ${{ needs.source.outputs.sha }}
       - uses: actions/setup-python@v6
         with:
           python-version-file: .python-version
@@ -35,19 +78,20 @@ jobs:
         with:
           context: .
           push: true
-          tags: ${{ env.IMAGE }}:sha-${{ github.sha }}
+          tags: ${{ env.IMAGE }}:sha-${{ needs.source.outputs.sha }}
           labels: |
             org.opencontainers.image.source=https://github.com/jerichosy/yt-dlp_info-extractor-api
-            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.revision=${{ needs.source.outputs.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
       - name: Promote current master to latest
         env:
           GH_TOKEN: ${{ github.token }}
+          COMMIT_SHA: ${{ needs.source.outputs.sha }}
         run: |
           current=$(gh api "repos/$GITHUB_REPOSITORY/commits/master" --jq .sha)
-          if [ "$current" = "$GITHUB_SHA" ]; then
-            docker buildx imagetools create --tag "$IMAGE:latest" "$IMAGE:sha-$GITHUB_SHA"
+          if [ "$current" = "$COMMIT_SHA" ]; then
+            docker buildx imagetools create --tag "$IMAGE:latest" "$IMAGE:sha-$COMMIT_SHA"
           else
             echo 'A newer master push exists; leaving latest promotion to its build.'
           fi
