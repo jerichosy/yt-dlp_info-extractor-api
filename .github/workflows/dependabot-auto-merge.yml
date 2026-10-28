@@ -76,12 +76,24 @@ jobs:
           REPO: ${{ github.repository }}
           BASE: ${{ github.event.pull_request.base.ref }}
           PR_URL: ${{ github.event.pull_request.html_url }}
+          DEPENDENCIES: ${{ steps.metadata.outputs.updated-dependencies-json }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           gh api "repos/$REPO/branches/$BASE" > protection.json
           python - <<'PY'
           import json
           branch = json.load(open('protection.json'))
+          import os, subprocess, base64, tomllib
+          from datetime import date
+          dependencies = json.loads(os.environ['DEPENDENCIES'])
+          for dep in dependencies:
+              if dep.get('dependencyName', '').split('[')[0] == 'yt-dlp':
+                  raw = json.loads(subprocess.check_output(['gh', 'api', 'repos/'+os.environ['REPO']+'/contents/uv.lock?ref='+os.environ['BASE']], text=True))
+                  lock = tomllib.loads(base64.b64decode(raw['content']).decode())
+                  current = next(p['version'] for p in lock['package'] if p['name'] == 'yt-dlp')
+                  proposed = date(*map(int, dep['newVersion'].split('.')))
+                  installed = date(*map(int, current.split('.')))
+                  assert proposed >= installed, 'Calendar PR would downgrade current master yt-dlp'
           assert branch['protected'], 'Branch protection is missing'
           checks = branch['protection']['required_status_checks']
           assert checks['enforcement_level'] == 'everyone'
